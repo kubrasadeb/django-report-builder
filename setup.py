@@ -11,7 +11,7 @@ setup(
     license="BSD",
     keywords="django report",
     url="https://github.com/mustafaulker/django-report-builder",
-    packages=find_packages(exclude=["report_builder_demo", "report_builder_demo.*"]),
+    packages=find_packages(include=["report_builder", "report_builder.*"]),
     include_package_data=True,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
