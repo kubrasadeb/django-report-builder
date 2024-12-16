@@ -5,6 +5,7 @@ from decimal import Decimal
 from functools import reduce
 import zipfile
 from io import BytesIO
+from django.utils import timezone
 
 from dateutil import parser
 from django import forms
@@ -106,7 +107,9 @@ class Report(models.Model):
     )
     distinct = models.BooleanField(default=False)
     report_file = models.FileField(upload_to="report_files", blank=True)
-    report_file_creation = models.DateTimeField(blank=True, null=True)
+    report_file_creation = models.DateTimeField(
+        default=timezone.now, blank=True, null=True
+    )
     starred = models.ManyToManyField(
         AUTH_USER_MODEL,
         blank=True,
@@ -457,11 +460,13 @@ class Report(models.Model):
         file_type=None,
         email_to: str = None,
     ):
+        print("Asenkrona girdi.")
         if file_type not in ["csv", "xlsx"]:
             raise ValueError("file_type must be 'csv' or 'xlsx'")
 
         data_export = DataExportMixin()
         if len(chunks) == 1:
+            print("1 tane dosya için burada.")
             single_chunk = chunks[0]
             if file_type == "csv":
                 csv_file = data_export.list_to_csv_file(
@@ -471,18 +476,21 @@ class Report(models.Model):
                 self.report_file.save(
                     file_name, ContentFile(csv_file.getvalue().encode())
                 )
+                print("csv yaptı.")
             elif file_type == "xlsx":
                 xlsx_file = data_export.list_to_xlsx_file(
                     single_chunk, title, header, widths
                 )
                 file_name = generate_filename(title, ".xlsx")
                 self.report_file.save(file_name, ContentFile(xlsx_file.read()))
+                print("xlsx yaptı.")
             self.report_file_creation = datetime.datetime.today()
             self.save()
             return
 
         else:
             zip_buffer = BytesIO()
+            print("birden fazla dosya için zip yaptı.")
 
             with zipfile.ZipFile(zip_buffer, "w") as zip_file:
                 for index, chunk in enumerate(chunks):
@@ -492,15 +500,17 @@ class Report(models.Model):
                             chunk, chunk_title, header, widths
                         )
                         zip_file.writestr(chunk_title, csv_file.getvalue().encode())
+                        print("zipte csv yaptı.")
                     elif file_type == "xlsx":
                         xlsx_file = data_export.list_to_xlsx_file(
                             chunk, chunk_title, header, widths
                         )
                         zip_file.writestr(chunk_title, xlsx_file.read())
+                        print("zipte xlsx yaptı.")
 
             zip_filename = f"{title}.zip"
             self.report_file.save(zip_filename, ContentFile(zip_buffer.getvalue()))
-            self.report_file_creation = datetime.datetime.today()
+            self.report_file_creation = timezone.now()
             self.save()
 
             if email_to:
@@ -526,6 +536,8 @@ class Report(models.Model):
         email_to: str = None,
     ):
         """Generate this report file"""
+        print("run reporta girdi.")
+
         if not queryset:
             queryset = self.get_query()
 
@@ -553,6 +565,7 @@ class Report(models.Model):
         elif asynchronous:
             if user is None:
                 raise Exception("Cannot run async report without a user")
+            print("asenkron kısmına girecek.")
             self.async_report_save(chunks, title, header, widths, user, file_type)
         else:
             if file_type == "csv":
