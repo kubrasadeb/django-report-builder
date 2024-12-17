@@ -27,6 +27,8 @@ from report_builder.unique_slugify import unique_slugify
 from .email import email_report
 from .mixins import generate_filename, DataExportMixin
 from .utils import get_model_from_path_string, sort_data, increment_total, formatter
+from django.utils import timezone
+
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
 
@@ -478,7 +480,7 @@ class Report(models.Model):
                 )
                 file_name = generate_filename(title, ".xlsx")
                 self.report_file.save(file_name, ContentFile(xlsx_file.read()))
-            self.report_file_creation = datetime.datetime.today()
+            self.report_file_creation = timezone.now().replace(tzinfo=None)
             self.save()
             return
 
@@ -501,7 +503,7 @@ class Report(models.Model):
 
             zip_filename = f"{title}.zip"
             self.report_file.save(zip_filename, ContentFile(zip_buffer.getvalue()))
-            self.report_file_creation = datetime.datetime.today()
+            self.report_file_creation = timezone.now().replace(tzinfo=None)
             self.save()
 
             if email_to:
