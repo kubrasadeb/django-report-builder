@@ -514,7 +514,6 @@ class Report(models.Model):
     @staticmethod
     def chunk_data(data, chunk_size):
         for i in range(0, len(data), chunk_size):
-            print(f"Chunk: {i} ile {i + chunk_size}")  # Debug
             yield data[i : i + chunk_size]
 
     def run_report(
@@ -527,7 +526,6 @@ class Report(models.Model):
         email_to: str = None,
     ):
         """Generate this report file"""
-        print("run reporta girdi.")
 
         if not queryset:
             queryset = self.get_query()
