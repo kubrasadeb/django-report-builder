@@ -7,7 +7,7 @@ from functools import reduce
 from io import BytesIO, StringIO
 from numbers import Number
 from tempfile import NamedTemporaryFile
-
+from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Avg, Count, Sum, Max, Min
 from django.db.models.fields.related_descriptors import ManyToManyDescriptor
@@ -33,7 +33,7 @@ DisplayField = namedtuple(
 def generate_filename(title, ends_with):
     title = title.split(".")[0]
     title.replace(" ", "_")
-    title += "_" + datetime.datetime.now().strftime("%m%d_%H%M")
+    title += "_" + datetime.now().strftime("%m%d_%H%M")
     if not title.endswith(ends_with):
         title += ends_with
     return title
@@ -127,13 +127,18 @@ class DataExportMixin(object):
 
         wb = Workbook()
         title = re.sub(r"\W+", "", title)[:30]
-
         ws = wb.active
+
         if header:
             ws.append(header)
 
         for row in data:
-            ws.append(row)
+            cleaned_row = []
+            for value in row:
+                if isinstance(value, datetime):
+                    value = value.replace(tzinfo=None)
+                cleaned_row.append(value)
+            ws.append(cleaned_row)
 
         file_buffer = BytesIO()
         wb.save(file_buffer)
@@ -416,7 +421,7 @@ class DataExportMixin(object):
             defaults = {
                 None: str,
                 datetime.date: lambda: datetime.date(datetime.MINYEAR, 1, 1),
-                datetime.datetime: lambda: datetime.datetime(datetime.MINYEAR, 1, 1),
+                datetime: lambda: datetime(datetime.MINYEAR, 1, 1),
             }
 
             # Order sort fields in reverse order so that ascending, descending
